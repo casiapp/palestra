@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1f2937">
+<title>Schede palestra</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Schede palestra</h1>
+  <button id="btnImpost" aria-label="Impostazioni">⚙</button>
+</header>
+
+<nav id="tabs"></nav>
+
+<main>
+  <div class="riga-nome">
+    <input id="nomeScheda" type="text" placeholder="Nome scheda (es. Giorno A - Petto)">
+  </div>
+  <div id="riepilogo" class="riepilogo"></div>
+  <div id="lista"></div>
+  <button id="btnAggiungi" class="primario">+ Aggiungi esercizio</button>
+  <button id="btnSvuota" class="secondario">Svuota scheda</button>
+</main>
+
+<dialog id="dlgImpost">
+  <h2>Impostazioni</h2>
+  <p class="nota">Servono per stimare il tempo della scheda.</p>
+  <label>Durata di una serie (secondi)<input id="iTSerie" type="number" min="5" max="300"></label>
+  <label>Recupero predefinito tra le serie (secondi)<input id="iRec" type="number" min="0" max="600"></label>
+  <label>Cambio attrezzo / preparazione per esercizio (secondi)<input id="iCambio" type="number" min="0" max="600"></label>
+
+  <h3>Esercizi personalizzati</h3>
+  <div class="riga-add">
+    <input id="iNuovoEs" type="text" placeholder="Nome esercizio">
+    <button id="btnAddEs" class="secondario">Aggiungi</button>
+  </div>
+  <div id="listaCustom"></div>
+
+  <h3>Backup</h3>
+  <div class="riga-add">
+    <button id="btnBackup" class="secondario">Esporta</button>
+    <button id="btnImporta" class="secondario">Importa</button>
+    <input id="fileImporta" type="file" accept=".json,application/json" hidden>
+  </div>
+  <p class="nota">I dati stanno solo in questo telefono/browser: ogni tanto esporta un backup.</p>
+  <div class="riga-add"><button id="btnChiudiImp" class="primario">Chiudi</button></div>
+</dialog>
+
+<script src="esercizi.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

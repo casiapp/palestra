@@ -1,0 +1,34 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #f3f4f6; color: #111827; }
+header { display: flex; justify-content: space-between; align-items: center; background: #1f2937; color: #fff; padding: 10px 14px; position: sticky; top: 0; z-index: 5; }
+header h1 { font-size: 18px; margin: 0; }
+header button { background: none; border: 0; color: #fff; font-size: 24px; }
+#tabs { display: flex; gap: 6px; padding: 8px; background: #374151; position: sticky; top: 46px; z-index: 4; }
+#tabs button { flex: 1; padding: 10px 4px; border: 0; border-radius: 8px; background: #4b5563; color: #e5e7eb; font-size: 15px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#tabs button.attiva { background: #f59e0b; color: #111827; font-weight: 700; }
+main { padding: 10px; max-width: 640px; margin: 0 auto; }
+input, select { width: 100%; padding: 10px; font-size: 16px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; }
+.riepilogo { margin: 10px 0; padding: 10px 12px; background: #fff; border-left: 5px solid #f59e0b; border-radius: 8px; font-size: 15px; }
+.riepilogo b { font-size: 17px; }
+.es { background: #fff; border-radius: 10px; padding: 10px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.es-testa { display: flex; gap: 6px; align-items: center; }
+.es-testa .num { font-weight: 700; color: #6b7280; min-width: 22px; }
+.campi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+.campi label { font-size: 12px; color: #6b7280; display: block; }
+.campi input { padding: 8px 6px; text-align: center; }
+.azioni { display: flex; gap: 6px; margin-top: 8px; justify-content: flex-end; }
+.azioni button { padding: 6px 12px; border: 1px solid #d1d5db; background: #f9fafb; border-radius: 8px; font-size: 15px; }
+.azioni .del { color: #b91c1c; }
+button.primario { width: 100%; margin-top: 6px; padding: 14px; border: 0; border-radius: 10px; background: #f59e0b; color: #111827; font-size: 16px; font-weight: 700; }
+button.secondario { width: 100%; margin-top: 10px; padding: 10px; border: 1px solid #d1d5db; border-radius: 10px; background: #fff; font-size: 15px; }
+.vuoto { text-align: center; color: #6b7280; padding: 24px 8px; }
+dialog { width: min(92vw, 520px); border: 0; border-radius: 12px; padding: 16px; }
+dialog::backdrop { background: rgba(0,0,0,.5); }
+dialog h2, dialog h3 { margin: 6px 0; }
+dialog label { display: block; font-size: 14px; margin-top: 10px; }
+.riga-add { display: flex; gap: 6px; margin-top: 8px; }
+.riga-add button { width: auto; margin-top: 0; flex: 0 0 auto; padding: 10px 14px; }
+.riga-add input { flex: 1; }
+.nota { font-size: 13px; color: #6b7280; }
+.custom { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #e5e7eb; }
+.custom button { border: 0; background: none; color: #b91c1c; font-size: 18px; }
