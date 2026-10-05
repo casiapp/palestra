@@ -7,8 +7,17 @@ function statoVuoto() {
     attiva: 0,
     impost: { tSerie: 40, rec: 90, cambio: 60 },
     custom: [],
-    schede: Array.from({ length: N_SCHEDE }, (_, i) => ({ nome: "", esercizi: [] })),
+    schede: Array.from({ length: N_SCHEDE }, (_, i) => ({ nome: "", esercizi: [], bloccata: false })),
+    storico: {}, // { nomeEsercizio: [{ d: "AAAA-MM-GG", p: peso }] } ordinato per data
+    esec: null,  // allenamento in corso: { s: indiceScheda, fatti: { indiceEsercizio: true } }
   };
+}
+
+// schede già compilate prima dell'introduzione del blocco: partono bloccate
+function migra(s) {
+  s = Object.assign(statoVuoto(), s);
+  for (const sc of s.schede) if (sc.bloccata === undefined) sc.bloccata = sc.esercizi.length > 0;
+  return s;
 }
 
 let stato = carica();
@@ -16,7 +25,7 @@ let stato = carica();
 function carica() {
   try {
     const s = JSON.parse(localStorage.getItem(CHIAVE));
-    if (s && s.schede) return Object.assign(statoVuoto(), s);
+    if (s && s.schede) return migra(s);
   } catch (e) {}
   return statoVuoto();
 }
@@ -32,6 +41,14 @@ function nomeTab(i) {
   return n || "Scheda " + "ABCD"[i];
 }
 
+// attrezzo tra parentesi solo se non è già nel nome (confronto sulla radice: manubrio/manubri, cavo/cavi)
+function etichettaAttrezzo(nome, attrezzo) {
+  if (!attrezzo) return "";
+  const a = attrezzo.toLowerCase();
+  const radice = a.slice(0, Math.max(3, a.length - 1));
+  return nome.toLowerCase().includes(radice) ? "" : " (" + a + ")";
+}
+
 function opzioniEsercizi(selezionato) {
   let html = '<option value="">— scegli esercizio —</option>';
   for (const g of GRUPPI) {
@@ -40,7 +57,7 @@ function opzioniEsercizi(selezionato) {
       : ESERCIZI_BASE.filter((e) => e[1] === g);
     if (!voci.length) continue;
     html += `<optgroup label="${g}">` + voci.map((e) =>
-      `<option value="${esc(e[0])}"${e[0] === selezionato ? " selected" : ""}>${esc(e[0])}${e[2] ? " (" + e[2].toLowerCase() + ")" : ""}</option>`
+      `<option value="${esc(e[0])}"${e[0] === selezionato ? " selected" : ""}>${esc(e[0])}${etichettaAttrezzo(e[0], e[2])}</option>`
     ).join("") + "</optgroup>";
   }
   return html;
@@ -65,40 +82,60 @@ function formatTempo(sec) {
   return Math.floor(min / 60) + " h " + String(min % 60).padStart(2, "0") + " min";
 }
 
+const inEsec = () => !!stato.esec && stato.esec.s === stato.attiva;
+const ultimoPeso = (nome) => { const a = stato.storico[nome]; return a && a.length ? a[a.length - 1] : null; };
+
+function oggi() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function formatData(iso) { const [y, m, g] = iso.split("-"); return g + "/" + m + "/" + y.slice(2); }
+
 function disegna() {
-  // tab
+  // tab (durante un allenamento non si cambia scheda)
   $("tabs").innerHTML = stato.schede.map((_, i) =>
-    `<button data-i="${i}" class="${i === stato.attiva ? "attiva" : ""}">${esc(nomeTab(i))}</button>`).join("");
+    `<button data-i="${i}" class="${i === stato.attiva ? "attiva" : ""}"${stato.esec && i !== stato.esec.s ? " disabled" : ""}>${esc(nomeTab(i))}</button>`).join("");
   document.querySelectorAll("#tabs button").forEach((b) =>
     b.onclick = () => { stato.attiva = Number(b.dataset.i); salva(); disegna(); });
 
   const sc = scheda();
+  const bloccata = sc.bloccata && sc.esercizi.length > 0;
+  const esec = inEsec();
   $("nomeScheda").value = sc.nome;
+  $("nomeScheda").disabled = bloccata;
 
   // lista esercizi
   const el = $("lista");
   if (!sc.esercizi.length) {
     el.innerHTML = '<div class="vuoto">Scheda vuota.<br>Tocca “Aggiungi esercizio”.</div>';
   } else {
-    el.innerHTML = sc.esercizi.map((e, i) => `
-      <div class="es" data-i="${i}">
+    el.innerHTML = sc.esercizi.map((e, i) => {
+      const fatto = esec && stato.esec.fatti[i];
+      const ult = esec && e.nome ? ultimoPeso(e.nome) : null;
+      return `
+      <div class="es${fatto ? " fatto" : ""}" data-i="${i}">
         <div class="es-testa">
           <span class="num">${i + 1}.</span>
-          <select data-k="nome">${opzioniEsercizi(e.nome)}</select>
+          ${bloccata ? `<div class="nome">${esc(e.nome)}</div>` : `<select data-k="nome">${opzioniEsercizi(e.nome)}</select>`}
         </div>
         <div class="campi">
-          <div><label>Serie</label><input data-k="serie" type="number" inputmode="numeric" min="1" value="${e.serie}"></div>
-          <div><label>Rip.</label><input data-k="rip" type="text" inputmode="text" value="${esc(e.rip)}"></div>
+          <div><label>Serie</label><input data-k="serie" type="number" inputmode="numeric" min="1" value="${e.serie}"${bloccata ? " disabled" : ""}></div>
+          <div><label>Rip.</label><input data-k="rip" type="text" inputmode="text" value="${esc(e.rip)}"${bloccata ? " disabled" : ""}></div>
           <div><label>Peso kg</label><input data-k="peso" type="number" inputmode="decimal" step="0.5" min="0" value="${e.peso}"></div>
-          <div><label>Rec. s</label><input data-k="rec" type="number" inputmode="numeric" min="0" placeholder="${stato.impost.rec}" value="${e.rec}"></div>
+          <div><label>Rec. s</label><input data-k="rec" type="number" inputmode="numeric" min="0" placeholder="${stato.impost.rec}" value="${e.rec}"${bloccata ? " disabled" : ""}></div>
         </div>
-        <div class="azioni">
+        ${esec ? `<div class="esec-riga">
+          <span class="nota">${ult ? "Ultimo: " + ult.p + " kg (" + formatData(ult.d) + ")" : "Nessuno storico"}</span>
+          <button data-a="fatto" class="${fatto ? "ok" : ""}">${fatto ? "✓ Fatto" : "Fatto"}</button>
+        </div>` : ""}
+        ${bloccata ? "" : `<div class="azioni">
           <button data-a="su" ${i === 0 ? "disabled" : ""}>↑</button>
           <button data-a="giu" ${i === sc.esercizi.length - 1 ? "disabled" : ""}>↓</button>
           <button data-a="dup">Duplica</button>
           <button data-a="del" class="del">Elimina</button>
-        </div>
-      </div>`).join("");
+        </div>`}
+      </div>`;
+    }).join("");
   }
   el.querySelectorAll(".es").forEach((card) => {
     const i = Number(card.dataset.i);
@@ -108,7 +145,64 @@ function disegna() {
     });
     card.querySelectorAll("[data-a]").forEach((b) => b.onclick = () => azione(b.dataset.a, i));
   });
+
+  $("btnAggiungi").hidden = bloccata;
+  $("btnSvuota").hidden = bloccata;
+  comandi();
   riepilogo();
+}
+
+// pulsanti sotto il riepilogo: Modifica / Fine modifica / allenamento
+function comandi() {
+  const sc = scheda();
+  const el = $("comandi");
+  if (!sc.esercizi.length) { el.innerHTML = ""; return; }
+  if (inEsec()) {
+    const fatti = Object.keys(stato.esec.fatti).filter((k) => stato.esec.fatti[k]).length;
+    el.innerHTML = `<div class="nota">Allenamento in corso: <b>${fatti}/${sc.esercizi.length}</b> esercizi fatti</div>
+      <button data-c="fine-all" class="primario">Termina allenamento</button>
+      <button data-c="annulla-all" class="secondario">Annulla allenamento</button>`;
+  } else if (sc.bloccata) {
+    el.innerHTML = `<button data-c="inizia" class="primario">Inizia allenamento</button>
+      <button data-c="modifica" class="secondario">Modifica scheda</button>`;
+  } else {
+    el.innerHTML = `<button data-c="blocca" class="primario">Fine modifica</button>`;
+  }
+  el.querySelectorAll("[data-c]").forEach((b) => b.onclick = () => comando(b.dataset.c));
+}
+
+function comando(c) {
+  const sc = scheda();
+  if (c === "modifica") sc.bloccata = false;
+  else if (c === "blocca") {
+    if (sc.esercizi.some((e) => !e.nome)) { alert("Ci sono esercizi senza nome: sceglili o eliminali."); return; }
+    sc.bloccata = true;
+  }
+  else if (c === "inizia") stato.esec = { s: stato.attiva, fatti: {} };
+  else if (c === "annulla-all") {
+    if (!confirm("Annullare l'allenamento? Non verrà salvato nello storico.")) return;
+    stato.esec = null;
+  }
+  else if (c === "fine-all") {
+    const mancano = sc.esercizi.length - Object.keys(stato.esec.fatti).filter((k) => stato.esec.fatti[k]).length;
+    if (mancano && !confirm("Mancano " + mancano + " esercizi. Terminare comunque?")) return;
+    salvaAllenamento();
+  }
+  salva(); disegna();
+}
+
+// registra nello storico il peso degli esercizi fatti (un valore per esercizio al giorno)
+function salvaAllenamento() {
+  const sc = scheda();
+  const d = oggi();
+  for (const [i, e] of sc.esercizi.entries()) {
+    if (!stato.esec.fatti[i] || !e.nome || e.peso === "" || isNaN(Number(e.peso))) continue;
+    const arr = stato.storico[e.nome] || (stato.storico[e.nome] = []);
+    const gia = arr.find((x) => x.d === d);
+    if (gia) gia.p = Number(e.peso); else arr.push({ d, p: Number(e.peso) });
+    arr.sort((a, b) => a.d.localeCompare(b.d));
+  }
+  stato.esec = null;
 }
 
 function riepilogo() {
@@ -122,7 +216,8 @@ function riepilogo() {
 
 function azione(a, i) {
   const l = scheda().esercizi;
-  if (a === "su" && i > 0) [l[i - 1], l[i]] = [l[i], l[i - 1]];
+  if (a === "fatto") stato.esec.fatti[i] = !stato.esec.fatti[i];
+  else if (a === "su" && i > 0) [l[i - 1], l[i]] = [l[i], l[i - 1]];
   else if (a === "giu" && i < l.length - 1) [l[i + 1], l[i]] = [l[i], l[i + 1]];
   else if (a === "dup") l.splice(i + 1, 0, Object.assign({}, l[i]));
   else if (a === "del") {
@@ -140,12 +235,37 @@ $("btnAggiungi").onclick = () => {
 };
 $("btnSvuota").onclick = () => {
   if (!scheda().esercizi.length) return;
-  if (confirm("Svuotare tutta la scheda? I pesi inseriti andranno persi.")) { scheda().esercizi = []; salva(); disegna(); }
+  if (confirm("Svuotare tutta la scheda? I pesi inseriti andranno persi (lo storico resta).")) { scheda().esercizi = []; scheda().bloccata = false; salva(); disegna(); }
 };
 $("nomeScheda").oninput = (ev) => {
   scheda().nome = ev.target.value; salva();
   document.querySelectorAll("#tabs button")[stato.attiva].textContent = nomeTab(stato.attiva);
 };
+
+// --- progressione carichi ---
+function disegnaStorico() {
+  const nomi = Object.keys(stato.storico).filter((n) => stato.storico[n].length).sort();
+  const sel = $("selStorico");
+  const corrente = sel.value;
+  sel.innerHTML = nomi.map((n) => `<option value="${esc(n)}"${n === corrente ? " selected" : ""}>${esc(n)}</option>`).join("");
+  if (!nomi.length) { $("listaStorico").innerHTML = '<p class="nota">Ancora nessun allenamento registrato.</p>'; sel.hidden = true; return; }
+  sel.hidden = false;
+  const arr = stato.storico[sel.value];
+  $("listaStorico").innerHTML = arr.map((x, k) => {
+    const prec = k ? arr[k - 1].p : null;
+    const diff = prec === null ? "" : x.p > prec ? `<span class="su">▲ +${+(x.p - prec).toFixed(2)}</span>` : x.p < prec ? `<span class="giu">▼ ${+(x.p - prec).toFixed(2)}</span>` : "=";
+    return `<div class="custom"><span>${formatData(x.d)}</span><b>${x.p} kg</b><span>${diff}</span><button data-k="${k}" aria-label="Elimina">✕</button></div>`;
+  }).reverse().join("");
+  document.querySelectorAll("#listaStorico button").forEach((b) => b.onclick = () => {
+    if (!confirm("Eliminare questa registrazione?")) return;
+    arr.splice(Number(b.dataset.k), 1);
+    if (!arr.length) delete stato.storico[sel.value];
+    salva(); disegnaStorico();
+  });
+}
+$("btnStorico").onclick = () => { disegnaStorico(); $("dlgStorico").showModal(); };
+$("selStorico").onchange = disegnaStorico;
+$("btnChiudiSto").onclick = () => $("dlgStorico").close();
 
 // --- impostazioni ---
 function disegnaCustom() {
@@ -190,7 +310,7 @@ $("fileImporta").onchange = async (ev) => {
     const s = JSON.parse(await f.text());
     if (!s.schede || !Array.isArray(s.schede)) throw new Error();
     if (!confirm("Sostituire tutti i dati attuali con quelli del backup?")) return;
-    stato = Object.assign(statoVuoto(), s);
+    stato = migra(s);
     salva(); disegna(); $("dlgImpost").close();
   } catch (e) { alert("File non valido."); }
   ev.target.value = "";

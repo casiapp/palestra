@@ -1,5 +1,5 @@
 // Service worker: prima la rete (timeout 3 s), poi la cache
-const CACHE = "palestra-v0.1";
+const CACHE = "palestra-v0.2";
 const FILE = ["./", "index.html", "style.css", "app.js", "esercizi.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (e) => {

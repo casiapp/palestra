@@ -12,6 +12,7 @@
 <body>
 <header>
   <h1>Schede palestra</h1>
+  <button id="btnStorico" aria-label="Progressione carichi">📈</button>
   <button id="btnImpost" aria-label="Impostazioni">⚙</button>
 </header>
 
@@ -22,6 +23,7 @@
     <input id="nomeScheda" type="text" placeholder="Nome scheda (es. Giorno A - Petto)">
   </div>
   <div id="riepilogo" class="riepilogo"></div>
+  <div id="comandi"></div>
   <div id="lista"></div>
   <button id="btnAggiungi" class="primario">+ Aggiungi esercizio</button>
   <button id="btnSvuota" class="secondario">Svuota scheda</button>
@@ -49,6 +51,14 @@
   </div>
   <p class="nota">I dati stanno solo in questo telefono/browser: ogni tanto esporta un backup.</p>
   <div class="riga-add"><button id="btnChiudiImp" class="primario">Chiudi</button></div>
+</dialog>
+
+<dialog id="dlgStorico">
+  <h2>Progressione carichi</h2>
+  <select id="selStorico"></select>
+  <div id="listaStorico"></div>
+  <p class="nota">Il peso viene registrato quando termini un allenamento.</p>
+  <div class="riga-add"><button id="btnChiudiSto" class="primario">Chiudi</button></div>
 </dialog>
 
 <script src="esercizi.js"></script>
