@@ -118,6 +118,9 @@ function disegna() {
           <span class="num">${i + 1}.</span>
           ${bloccata ? `<div class="nome">${esc(e.nome)}</div>` : `<select data-k="nome">${opzioniEsercizi(e.nome)}</select>`}
         </div>
+        ${bloccata
+          ? (e.nota ? `<div class="nota-es">${esc(e.nota)}</div>` : "")
+          : `<input class="nota-es" data-k="nota" type="text" placeholder="Nota (facoltativa)" value="${esc(e.nota || "")}">`}
         <div class="campi">
           <div><label>Serie</label><input data-k="serie" type="number" inputmode="numeric" min="1" value="${e.serie}"${bloccata ? " disabled" : ""}></div>
           <div><label>Rip.</label><input data-k="rip" type="text" inputmode="text" value="${esc(e.rip)}"${bloccata ? " disabled" : ""}></div>
